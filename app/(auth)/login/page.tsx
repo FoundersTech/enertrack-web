@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircleIcon } from 'lucide-react'
+import { AlertCircleIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -26,6 +26,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') ?? '/dashboard'
   const { login, isLoading, error } = useAuth()
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -67,19 +68,39 @@ function LoginForm() {
             </Field>
             <Field data-invalid={form.formState.errors.password ? '' : undefined}>
               <FieldLabel htmlFor="password">Senha</FieldLabel>
-              <Input
-                id="password"
-                type="password"
-                placeholder="********"
-                autoComplete="current-password"
-                aria-invalid={!!form.formState.errors.password}
-                {...form.register('password')}
-              />
+
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="********"
+                  autoComplete="current-password"
+                  aria-invalid={!!form.formState.errors.password}
+                  className="pr-10"
+                  {...form.register('password')}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                </button>
+              </div>
             </Field>
           </FieldGroup>
+
           <Button type="submit" className="mt-6 w-full" disabled={isLoading}>
             {isLoading ? <Spinner /> : 'Entrar'}
           </Button>
+
+          <div className="mt-4 text-center">
+            <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+              Esqueci minha senha
+            </Link>
+          </div>
         </form>
       </CardContent>
       <CardFooter className="justify-center">
