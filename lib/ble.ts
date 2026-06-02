@@ -1,14 +1,16 @@
-/// <reference types="@anthropic-ai/sdk/shims/web" />
+/// <reference types="web-bluetooth" />
 
-const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc'
-const CHAR_SSID_UUID = '12345678-1234-1234-1234-123456789ab1'
-const CHAR_PASS_UUID = '12345678-1234-1234-1234-123456789ab2'
-const CHAR_STATUS_UUID = '12345678-1234-1234-1234-123456789ab3'
-const CHAR_ENERGY_UUID = '12345678-1234-1234-1234-123456789ab4'
+const SERVICE_UUID = '260068aa-c6db-4917-99ca-badb5c51f3fc'
+const CHAR_SSID_UUID = 'ac3bfe5c-27e6-4b39-8d94-2fd85a9a02d6'
+const CHAR_PASS_UUID = '36c71103-c480-4b2c-8fe8-8ca45a22766b'
+const CHAR_STATUS_UUID = 'd92bd0e1-0951-45e1-9736-50446ddb3946'
+const CHAR_ENERGY_UUID = '6d18dfb9-2356-46fd-af05-173d252b830d'
+const CHAR_CONFIG_UUID = '50a18a52-a309-4710-9600-a139e45b03ce'
 
 export interface EnerTrackBle {
   deviceName: string
   macAddress: string
+  sendDeviceConfig(alias: string, netType: string, voltage: number): Promise<void>
   sendWifiCredentials(ssid: string, password: string): Promise<void>
   onStatus(cb: (status: string) => void): void
   onEnergy(cb: (data: { irms: number; watts: number }) => void): void
@@ -44,12 +46,24 @@ export async function scanAndConnect(): Promise<EnerTrackBle> {
   const charPass = await service.getCharacteristic(CHAR_PASS_UUID)
   const charStatus = await service.getCharacteristic(CHAR_STATUS_UUID)
   const charEnergy = await service.getCharacteristic(CHAR_ENERGY_UUID)
+  const charConfig = await service.getCharacteristic(CHAR_CONFIG_UUID)
 
-  const macSuffix = device.name?.split('-')[1] ?? 'UNKNOWN'
+  const macAddress = device.name?.split('-')[1] ?? 'UNKNOWN'
 
   return {
     deviceName: device.name ?? 'EnerTrack',
-    macAddress: macSuffix,
+    macAddress,
+
+    async sendDeviceConfig(alias, netType, voltage) {
+      const payload = JSON.stringify({
+        alias,
+        netType,
+        net_type: netType,
+        voltage,
+      })
+
+      await charConfig.writeValueWithResponse(strToBytes(payload))
+    },
 
     async sendWifiCredentials(ssid, password) {
       await charSsid.writeValueWithResponse(strToBytes(ssid))

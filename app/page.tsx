@@ -7,7 +7,7 @@ import {
   WifiIcon, 
   BarChart3Icon, 
   SmartphoneIcon,
-  ArrowRightIcon 
+  ArrowRightIcon
 } from 'lucide-react'
 
 export default function HomePage() {
@@ -92,6 +92,59 @@ export default function HomePage() {
               </p>
             </CardContent>
           </Card>
+        </div>
+        <div
+          style={{
+            marginTop: 28,
+            display: "flex",
+            justifyContent: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <a
+            href="https://github.com/FoundersTech/enertrack-web"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "9px 14px",
+              borderRadius: 999,
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+              textDecoration: "none",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ color: "var(--accent)" }}>GitHub</span>
+            enertrack-web
+          </a>
+
+          <a
+            href="https://github.com/FoundersTech/enertrack-edge"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "9px 14px",
+              borderRadius: 999,
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              color: "var(--text-primary)",
+              textDecoration: "none",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ color: "var(--accent)" }}>GitHub</span>
+            enertrack-edge
+          </a>
         </div>
       </main>
 

@@ -31,19 +31,33 @@ const STEP_PROGRESS: Record<Step, number> = {
   error: 0,
 }
 
+const BLE_NET_TYPE_BY_CONFIG: Record<string, string> = {
+  '127v_monofasico': 'mono127',
+  '220v_monofasico': 'mono220',
+  '220v_trifasico': 'tri220',
+  '380v_trifasico': 'tri380',
+}
+
+const VOLTAGE_BY_CONFIG: Record<string, number> = {
+  '127v_monofasico': 127,
+  '220v_monofasico': 220,
+  '220v_trifasico': 220,
+  '380v_trifasico': 380,
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
+  const completedRef = useRef(false)
 
   const [step, setStep] = useState<Step>('intro')
   const [ble, setBle] = useState<EnerTrackBle | null>(null)
   const [ssid, setSsid] = useState('')
   const [password, setPassword] = useState('')
+  const [deviceName, setDeviceName] = useState('')
+  const [electricalConfig, setElectricalConfig] = useState('127v_monofasico')
   const [devName, setDevName] = useState('EnerTrack')
   const [statusMsg, setStatusMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
-  const completedRef = useRef(false)
-  const [deviceName, setDeviceName] = useState('')
-  const [electricalConfig, setElectricalConfig] = useState('127v_monofasico')
 
   async function handleScan() {
     if (!isBleSupported()) {
@@ -60,6 +74,7 @@ export default function OnboardingPage() {
 
       setBle(device)
       setDevName(device.deviceName)
+      setDeviceName(device.deviceName)
       setStep('wifi_form')
 
       device.onStatus((status) => {
@@ -94,13 +109,21 @@ export default function OnboardingPage() {
     if (!ble || !ssid.trim()) return
 
     setStep('provisioning')
-    setStatusMsg('Enviando credenciais...')
+    setStatusMsg('Enviando configuração...')
     setErrorMsg('')
 
     try {
+      const alias = deviceName.trim() || ble.deviceName
+      const netType = BLE_NET_TYPE_BY_CONFIG[electricalConfig] ?? 'mono127'
+      const voltage = VOLTAGE_BY_CONFIG[electricalConfig] ?? 127
+
+      await ble.sendDeviceConfig(alias, netType, voltage)
+
+      setStatusMsg('Enviando credenciais Wi-Fi...')
+
       await ble.sendWifiCredentials(ssid.trim(), password)
     } catch {
-      setErrorMsg('Falha ao enviar as credenciais via Bluetooth.')
+      setErrorMsg('Falha ao enviar configuração ou credenciais via Bluetooth.')
       setStep('wifi_form')
     }
   }
@@ -118,12 +141,24 @@ export default function OnboardingPage() {
         name: deviceName.trim() || device.deviceName,
         electrical_config: electricalConfig,
       })
+
+      device.disconnect()
     } catch {
-      // O ESP32 já conectou ao Wi-Fi.
-      // Não trava o usuário se o registro no D1 falhar.
-    } finally {
       device.disconnect()
     }
+  }
+
+  function resetFlow() {
+    completedRef.current = false
+    ble?.disconnect()
+    setBle(null)
+    setSsid('')
+    setPassword('')
+    setDeviceName('')
+    setElectricalConfig('127v_monofasico')
+    setStatusMsg('')
+    setErrorMsg('')
+    setStep('intro')
   }
 
   const progress = STEP_PROGRESS[step]
@@ -200,9 +235,9 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <CardTitle className="text-lg">Informe a rede Wi-Fi</CardTitle>
+                <CardTitle className="text-lg">Configure o dispositivo</CardTitle>
                 <CardDescription className="mt-1">
-                  Digite exatamente o nome da rede e a senha que o dispositivo deve usar.
+                  Informe os dados do EnerTrack, a instalação elétrica e a rede Wi-Fi.
                 </CardDescription>
               </div>
 
@@ -220,6 +255,7 @@ export default function OnboardingPage() {
                     placeholder="Ex: Sala, Quarto, Padrão principal"
                     value={deviceName}
                     onChange={(event) => setDeviceName(event.target.value)}
+                    autoComplete="off"
                   />
                 </Field>
 
@@ -228,7 +264,8 @@ export default function OnboardingPage() {
                   <select
                     value={electricalConfig}
                     onChange={(event) => setElectricalConfig(event.target.value)}
-                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    style={{ colorScheme: 'dark' }}
                   >
                     <option value="127v_monofasico">127V monofásico</option>
                     <option value="220v_monofasico">220V monofásico</option>
@@ -236,6 +273,7 @@ export default function OnboardingPage() {
                     <option value="380v_trifasico">380V trifásico</option>
                   </select>
                 </Field>
+
                 <Field>
                   <FieldLabel>Nome da rede Wi-Fi (SSID)</FieldLabel>
                   <Input
@@ -262,20 +300,7 @@ export default function OnboardingPage() {
                 Conectar dispositivo
               </Button>
 
-              <Button
-                variant="outline"
-                onClick={() => {
-                  completedRef.current = false
-                  ble?.disconnect()
-                  setBle(null)
-                  setSsid('')
-                  setPassword('')
-                  setStatusMsg('')
-                  setErrorMsg('')
-                  setStep('intro')
-                }}
-                className="w-full"
-              >
+              <Button variant="outline" onClick={resetFlow} className="w-full">
                 Trocar dispositivo
               </Button>
             </div>
@@ -314,7 +339,7 @@ export default function OnboardingPage() {
               <div>
                 <CardTitle className="mb-2">Tudo pronto!</CardTitle>
                 <CardDescription>
-                  {devName} foi configurado e registrado.
+                  {deviceName.trim() || devName} foi configurado e registrado.
                 </CardDescription>
               </div>
 
@@ -333,16 +358,7 @@ export default function OnboardingPage() {
                 </AlertDescription>
               </Alert>
 
-              <Button
-                variant="outline"
-                onClick={() => {
-                  completedRef.current = false
-                  ble?.disconnect()
-                  setBle(null)
-                  setErrorMsg('')
-                  setStep('intro')
-                }}
-              >
+              <Button variant="outline" onClick={resetFlow}>
                 Tentar novamente
               </Button>
             </div>
