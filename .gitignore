@@ -2,8 +2,12 @@
 
 # dependencies
 */node_modules
+*node_modules
 */.pnp
 *.pnp.js
+*.next
+*open-next
+*wrangler
 
 # testing
 */coverage
